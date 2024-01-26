@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    container_name: mysql-db
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: notes-backend
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - backend-network
+
+  backend:
+    container_name: backend-app
+    build: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/notes-backend
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_HIBERNATE_DDL-AUTO: update
+      SPRING_JPA_SHOW-SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+      SPRING_JPA_DATABASE: mysql
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_APPLICATION_NAME: notes-backend
+      APPLICATION_SECURITY_JWT_SECRET-KEY: B03FAA54C9888FAFCDF4F141A67E3120C263F87C6B5940497BB8E98CFCCF12F1
+      APPLICATION_SECURITY_JWT_EXPIRATION: 86400000
+      APPLICATION_SECURITY_JWT_REFRESH-TOKEN_EXPIRATION: 604800000
+      COM_SCMP_SECURITY_PERMIT-URL-PATTERNS: "/api/v1/auth/**,/api/v1/public/**"
+    depends_on:
+      - mysql
+    networks:
+      - backend-network
+
+  nginx:
+    container_name: nginx-proxy
+    build:
+      context: .
+      dockerfile: Dockerfile-nginx
+    ports:
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
